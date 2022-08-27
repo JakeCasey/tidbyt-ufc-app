@@ -4,6 +4,7 @@
   },
   "dependencies": {
     "base64-stream": "^1.0.0",
+    "cheerio": "^1.0.0-rc.12",
     "concat-stream": "^2.0.0",
     "dotenv": "^16.0.1",
     "needle": "^3.1.0",

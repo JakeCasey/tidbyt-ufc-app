@@ -3,6 +3,7 @@ var cron = require('node-cron');
 let PImage = require('pureimage');
 let { PNG } = require('pngjs');
 const needle = require('needle');
+const { getMMAData } = require('./scrape.js');
 let fs = require('fs');
 
 PImage.encodePNGSync = function (bitmap) {
@@ -70,6 +71,8 @@ function sendToTidbyt(image) {
 }
 
 async function runTidbytApp() {
+  getMMAData();
+
   let image = await generateImage();
 
   // Write your image to a file for debugging purposes
