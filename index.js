@@ -1,10 +1,16 @@
-require('dotenv').config();
-var cron = require('node-cron');
-let PImage = require('pureimage');
-let { PNG } = require('pngjs');
-const needle = require('needle');
-const { getMMAData } = require('./scrape.js');
-let fs = require('fs');
+import * as dotenv from 'dotenv'; // see https://github.com/motdotla/dotenv#how-do-i-use-dotenv-with-import
+dotenv.config();
+import cron from 'node-cron';
+import PImage from 'pureimage';
+//We need to import the module firium
+import { Gif } from 'make-a-gif';
+import { PNG } from 'pngjs';
+import needle from 'needle';
+import { getMMAData } from './scrape.js';
+import fs from 'fs';
+
+let height = 32;
+let width = 64;
 
 PImage.encodePNGSync = function (bitmap) {
   let png = new PNG({
@@ -29,28 +35,27 @@ cron.schedule('* * * * *', () => {
   console.log('running a task every minute');
 });
 
-async function generateImage() {
+async function generateStaticImage() {
   PImage.registerFont('./fonts/OpenSans-Regular.ttf', 'Open Sans').loadSync();
-  const image = PImage.make(64, 32);
+  const image = PImage.make(width, height);
   const ctx = image.getContext('2d');
 
-  console.log('font loaded');
   ctx.fillStyle = '#000000';
-  ctx.fillRect(0, 0, 64, 32);
+  ctx.fillRect(0, 0, width, height);
   ctx.fillStyle = '#ffffff';
   ctx.font = "24px 'Open Sans'";
   ctx.fillText('ABC', 1, 16);
 
-  return image;
+  return { image, ctx };
 }
 
 function sendToTidbyt(image) {
-  let base64String = image.toString('base64');
+  let basewidthString = image.toString('basewidth');
   needle(
     'post',
     `https://api.tidbyt.com/v0/devices/${process.env.TIDBYT_DEVICE_ID}/push`,
     {
-      image: base64String,
+      image: basewidthString,
       installationID: process.env.TIDBYT_INSTALLATION_ID,
       // Most of the time we want our app to stay in regular rotation and update only in the background.
       background: true,
@@ -71,23 +76,59 @@ function sendToTidbyt(image) {
 }
 
 async function runTidbytApp() {
-  getMMAData();
+  let MMAData = getMMAData();
 
-  let image = await generateImage();
+  let { image } = await generateStaticImage();
 
   // Write your image to a file for debugging purposes
-  //   PImage.encodePNGToStream(image, fs.createWriteStream('out.png'))
-  //     .then(() => {
-  //       console.log('wrote out the png file to out.png');
-  //     })
-  //     .catch((e) => {
-  //       console.log('there was an error writing');
-  //     });
+  PImage.encodePNGToStream(image, fs.createWriteStream('out.png'))
+    .then(() => {
+      console.log('wrote out the png file to out.png');
+    })
+    .catch((e) => {
+      console.log('there was an error writing');
+    });
 
   let pngImage = await PImage.encodePNGSync(image);
 
-  sendToTidbyt(pngImage);
+  // sendToTidbyt(pngImage);
 }
 
+let makeAGif = async (frames) => {
+  //We instance the class Gif and give the proportions of width 500 and height 500
+  const myGif = new Gif(height, width);
+  //We set 3 images that will be 3 frames
+  await myGif.setFrames(frames);
+
+  //Writes the gif in this folder
+  // await fs.writeFile(join(__dirname, 'make-a-gif.gif'), Render);
+
+  //Render the image, it will return a Buffer or it will give an error if anything goes wrong
+  return await myGif.decode();
+};
+
+let animator = async () => {
+  let totalFrames = 10;
+  let staticCanvas = generateStaticCanvasAssets();
+
+  let frames = [];
+
+  for (let i = 0; i < totalFrames; i++) {
+    let frame = await generateFrame(staticCanvas, i, totalFrames);
+    frames.push(frame);
+  }
+};
+
+let generateStaticCanvasAssets = () => {
+  let { image, ctx } = generateStaticImage();
+  return ctx;
+};
+
+let generateFrame = (ctx, frameNumber, totalFrames) => {
+  let frameOffset = frameNumber / totalFrames;
+  console.log(ctx);
+
+  return;
+};
 // This could be moved into the cron job if you want to run it every minute
 runTidbytApp();
